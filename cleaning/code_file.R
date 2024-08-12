@@ -16,9 +16,7 @@ files <- list.files(path = current_directory, full.names = TRUE, recursive = TRU
 print(files)
 # 必要なパッケージを読み込み
 
-
-library(readr)
-library(dplyr)
+library(tidyverse)
 
 # CSVファイルのパスを指定
 file1 <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/semester_dummy/semester_data_1.csv"
@@ -36,43 +34,42 @@ str(data2)
 head(data1)
 head(data2)
 
+colnames(data1) <- as.character(unlist(data1[1, ]))
+colnames(data2) <- as.character(unlist(data1[1, ]))
+data1 <- data1[-1,]
+
+
 data1 <- data1 %>%
   mutate(
-    x1 = as.numeric(x1),  # 変換する必要がある場合
-    x3 = as.numeric(x3),
-    x4 = as.numeric(x4),
-    x5 = as.numeric(x5),
-    x6 = as.numeric(x6)
+    unitid = as.numeric(unitid),  
+    semester = as.numeric(semester),
+    quarter = as.numeric(quarter),
+    year = as.numeric(year),
+    Y = as.numeric(Y)
   )
 data2 <- data2 %>%
   mutate(
-    x1 = as.numeric(x1),
-    x3 = as.numeric(x3),
-    x4 = as.numeric(x4),
-    x5 = as.numeric(x5),
-    x6 = as.numeric(x6)
-  )
-# 列名を変更して一致させる
-data1 <- data1 %>%
-  rename(
-    id = x1,
-    institution_name = x2,
-    semester = x3,
-    quarter = x4,
-    year = x5,
-    value = x6
+    unitid = as.numeric(unitid),  
+    semester = as.numeric(semester),
+    quarter = as.numeric(quarter),
+    year = as.numeric(year),
+    Y = as.numeric(Y)
   )
 
-data2 <- data2 %>%
-  rename(
-    id = x1,
-    institution_name = x2,
-    semester = x3,
-    quarter = x4,
-    year = x5,
-    value = x6
-  )
 # データを結合
 combined_data <- bind_rows(data1, data2)
-combined_data <- combined_data[-1, ]
 
+combined_data <- combined_data %>%
+  select(-Y)
+
+# semesterが0から1に変わった年を抽出
+change_years <- combined_data |>
+  group_by(unitid) |>
+  filter(lag(semester) == 0 & semester == 1) |>
+  summarise(yearofsem = first(year))
+
+combined_data <- combined_data %>%
+  left_join(change_years, by = "unitid")
+
+combined_data <- combined_data |>
+  mutate(after = ifelse(year >= yearofsem, 1, 0))
