@@ -1,3 +1,4 @@
+#---一番最初の準備---#
 getwd()
 # 現在の作業ディレクトリ内のフォルダ一覧を取得
 folders <- list.dirs(path = ".", full.names = TRUE, recursive = FALSE)
@@ -17,7 +18,9 @@ print(files)
 # 必要なパッケージを読み込み
 
 library(tidyverse)
+library(readxl)
 
+#---(a) Semester Dataの整形---#
 # CSVファイルのパスを指定
 file1 <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/semester_dummy/semester_data_1.csv"
 file2 <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/semester_dummy/semester_data_2.csv"
@@ -73,3 +76,47 @@ combined_data <- combined_data %>%
 
 combined_data <- combined_data |>
   mutate(after = ifelse(year >= yearofsem, 1, 0))
+
+#---(b) Gradrate Dataの整形---
+file1991 <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/outcome/1991.xlsx"
+grad1991<- read_excel(file1991)
+colnames(grad1991) <- as.character(unlist(grad1991[1, ]))
+grad1991 <- grad1991[-1,]
+grad_combined_data <- bind_rows(grad_combined_data, grad1991)
+
+
+# 1991年から2016年までのファイル名を作成
+years <- years <- c(1991:1993, 1995:2016)
+file_names <- paste0(file_path, years, ".xlsx")
+
+# ファイルを読み込み、結合
+grad_combined_data <- map(file_names, ~ {
+  # ファイルの読み込み
+  df <- read_excel(.x)
+  
+  return(df)
+}) %>%
+  bind_rows()
+
+#女子学生の４年卒業率を０から１のスケールに変更
+grad_combined_data <- grad_combined_data |> 
+  mutate(womengradrate4yr = women_gradrate_4yr / 100)
+#全学生の４年卒業率を計算
+grad_combined_data <- grad_combined_data |> 
+  mutate(
+    totcohortsize = as.numeric(totcohortsize),
+    gradrate4yr = tot4yrgrads / totcohortsize
+  )
+#男子学生の４年卒業率を０から１のスケールに変更
+grad_combined_data <- grad_combined_data |>
+  mutate(
+    m_4yrgrads = as.numeric(m_4yrgrads),
+    mengradrate4yr = m_4yrgrads / m_cohortsize
+  )
+
+#To round to the third decimal place
+grad_combined_data <- grad_combined_data |>
+  mutate(
+    gradrate4yr = round(gradrate4yr, 3),
+    mengradrate4yr = round(mengradrate4yr, 3)
+  )
