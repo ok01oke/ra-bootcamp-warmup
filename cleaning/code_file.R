@@ -78,11 +78,11 @@ combined_data <- combined_data |>
   mutate(after = ifelse(year >= yearofsem, 1, 0))
 
 #---(b) Gradrate Dataの整形---
-file1991 <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/outcome/1991.xlsx"
-grad1991<- read_excel(file1991)
-colnames(grad1991) <- as.character(unlist(grad1991[1, ]))
-grad1991 <- grad1991[-1,]
-grad_combined_data <- bind_rows(grad_combined_data, grad1991)
+# file1991 <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/outcome/1991.xlsx"
+# grad1991<- read_excel(file1991)
+# colnames(grad1991) <- as.character(unlist(grad1991[1, ]))
+# grad1991 <- grad1991[-1,]
+# grad_combined_data <- bind_rows(grad_combined_data, grad1991)
 
 
 # 1991年から2016年までのファイル名を作成
@@ -114,9 +114,62 @@ grad_combined_data <- grad_combined_data |>
     mengradrate4yr = m_4yrgrads / m_cohortsize
   )
 
-#To round to the third decimal place
+#小数第三位までに丸める
 grad_combined_data <- grad_combined_data |>
   mutate(
     gradrate4yr = round(gradrate4yr, 3),
     mengradrate4yr = round(mengradrate4yr, 3)
   )
+
+#1991年から2010年までのデータフレームに変形
+grad_combined_data <- grad_combined_data |>
+  filter(year <= 2010)
+
+#---(c) Covariates Dataの整形---
+library(stringr)
+library(tidyr)
+file_covariates <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/covariates/covariates.xlsx"
+data_covariates <- read_excel(file_covariates)
+data_covariates <- data_covariates |>
+  rename(unitid = university_id)
+data_covariates <- data_covariates |>
+  mutate(unitid = str_replace_all(unitid, "aaaa", ""))
+
+#wide型に変形
+data_covariates <- data_covariates |> 
+  pivot_wider(
+    names_from = category, 
+    values_from = value, 
+    values_fill = list(value = NA)
+  )
+
+#covariatesデータの期間を他のデータに揃える
+data_covariates <- data_covariates |>
+  filter(year >=1991,year <= 2010)
+
+#covariatesに含まれるunitidをoutcomeデータに揃える
+common_unitids <- intersect(grad_combined_data$unitid, data_covariates$unitid)
+data_covariates <- data_covariates |>
+  filter(unitid %in% common_unitids)
+#covariatesの文字型をnumにする
+data_covariates <- data_covariates |>
+  mutate(
+    unitid = as.numeric(unitid),
+    year = as.numeric(year),
+    instatetuition = as.numeric(instatetuition),
+    costs = as.numeric(costs),
+    faculty = as.numeric(faculty),
+    white_cohortsize = as.numeric(white_cohortsize)
+  )
+  
+#データの結合
+df_list <- list(combined_data, grad_combined_data, data_covariates)
+master <- reduce(
+  df_list,
+  function(x, y) {
+    inner_join(x, y, by = c("unitid", "year"))
+  }
+)
+
+#データのアップロード
+#write_csv(combined_data, file = "Users/okemotoaika/Desktop/ra-bootcamp-warmup/cleaning/clean_semester_dummy")
