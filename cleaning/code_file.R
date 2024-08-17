@@ -5,8 +5,7 @@ folders <- list.dirs(path = ".", full.names = TRUE, recursive = FALSE)
 
 # フォルダ一覧を表示
 print(folders)
-setwd("./Desktop")
-setwd("./ra-bootcamp-warmup")
+setwd("/Users/okemotoaika/Desktop/ra-bootcamp-warmup")
 getwd()
 
 current_directory <- getwd()
@@ -78,14 +77,8 @@ combined_data <- combined_data |>
   mutate(after = ifelse(year >= yearofsem, 1, 0))
 
 #---(b) Gradrate Dataの整形---
-# file1991 <- "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/outcome/1991.xlsx"
-# grad1991<- read_excel(file1991)
-# colnames(grad1991) <- as.character(unlist(grad1991[1, ]))
-# grad1991 <- grad1991[-1,]
-# grad_combined_data <- bind_rows(grad_combined_data, grad1991)
-
-
 # 1991年から2016年までのファイル名を作成
+file_path = "/Users/okemotoaika/Desktop/ra-bootcamp-warmup/warmup training package/01_data/raw/outcome/"
 years <- years <- c(1991:1993, 1995:2016)
 file_names <- paste0(file_path, years, ".xlsx")
 
@@ -171,5 +164,5 @@ master <- reduce(
   }
 )
 
-#データのアップロード
-#write_csv(combined_data, file = "Users/okemotoaika/Desktop/ra-bootcamp-warmup/cleaning/clean_semester_dummy")
+#データの書き出し
+write_csv(master, file = "cleaning/master.csv")
